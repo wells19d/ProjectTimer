@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { createAutoSizer } = require('../src/window-sizing');
 
-function fixture() {
+function fixture(options) {
   const window = new EventEmitter();
   let bounds = { x: 100, y: 100, width: 490, height: 310 };
   let changes = 0;
@@ -22,7 +22,7 @@ function fixture() {
     setPosition: (x, y) => { bounds = { ...bounds, x, y }; changes++; }
   });
   const screen = { getDisplayMatching: () => ({ workArea: { x: 0, y: 0, width: 1440, height: 900 } }) };
-  return { window, resize: createAutoSizer(window, screen), changes: () => changes };
+  return { window, resize: createAutoSizer(window, screen, options), changes: () => changes };
 }
 
 test('manual dragging prevents pending and future automatic sizes from overriding the user', () => {
@@ -106,4 +106,18 @@ test('moving the window manually also cancels pending automatic repositioning', 
   const before = changes();
   resize(1200);
   assert.equal(changes(), before);
+});
+
+test('automatic fitting keeps the taller startup size while still allowing a smaller manual size', () => {
+  const { window, resize } = fixture({ minimumHeight: 388 });
+  resize(180);
+  assert.equal(window.getBounds().height, 388);
+  resize(500);
+  assert.equal(window.getBounds().height, 528);
+  resize(180);
+  assert.equal(window.getBounds().height, 388);
+  window.emit('will-resize');
+  window.setSize(540, 240);
+  resize(180);
+  assert.equal(window.getBounds().height, 240);
 });

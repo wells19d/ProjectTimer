@@ -17,8 +17,8 @@
     <p id="save-error" class="notice error" role="alert" hidden></p>
     <p id="recovery" class="notice" role="status" hidden></p>
     <section id="projects" aria-label="Projects"></section>
-    <div id="empty" hidden><span class="empty-clock" aria-hidden="true">◷</span><h2>A little time adds up.</h2><p>Create a project or lab, then press Play.</p></div>
-    <footer><span><span class="local-dot" aria-hidden="true"></span> Stored locally · works offline</span><button id="show-data" type="button" title="Reveal projects.json in Finder">Data file ↗</button></footer>
+    <div id="empty" hidden><span class="empty-clock" aria-hidden="true">◷</span><h2>A little time adds up.</h2><p>Create a project, then press play.</p></div>
+    <footer><span id="footer-timezone"></span><button id="show-data" type="button" title="Reveal projects.json in Finder">Data file ↗</button></footer>
   </main>
   <dialog id="name-dialog" aria-labelledby="dialog-title">
     <form id="name-form">
@@ -29,6 +29,18 @@
       <div class="dialog-actions"><button id="cancel-name" type="button">Cancel</button><button id="save-name" class="create" type="submit">Create project</button></div>
     </form>
   </dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-message">
+    <form method="dialog">
+      <h2 id="delete-title">Delete?</h2>
+      <p id="delete-message"></p>
+      <div class="dialog-actions"><button id="cancel-delete" type="submit" value="cancel" autofocus>Cancel</button><button class="danger" type="submit" value="delete">Delete</button></div>
+    </form>
+  </dialog>
+  <script src="session-time.js"></script>
+  <script src="session-view.js"></script>
+  <script src="confirmation.js"></script>
+  <script src="clock-display.js"></script>
+  <script src="display-scheduler.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -114,13 +114,13 @@ test('failed data preservation leaves the installed app and its history untouche
   assert.equal(fs.readFileSync(path.join(f.destination, 'version'), 'utf8'), 'old');
 });
 
-test('creating a new project after repeated app updates succeeds and retains existing projects', t => {
+test('creating a new project after repeated app updates succeeds and retains existing projects', async t => {
   const f = legacyFixture(t, []);
   for (let update = 0; update < 2; update++) {
     installMacApp(f.source, f.applications, f.copy);
     const directory = resolveDataDirectory({ appDirectory: path.dirname(f.legacy), packaged: true });
     const store = new TimerStore(directory);
-    store.create(`Added after update ${update + 1}`);
+    await store.create(`Added after update ${update + 1}`);
   }
   const saved = JSON.parse(fs.readFileSync(path.join(f.legacy, 'projects.json'), 'utf8'));
   assert.deepEqual(saved.projects.map(p => p.name), ['Existing project', 'Added after update 1', 'Added after update 2']);

@@ -1,7 +1,7 @@
 // Automatic fitting owns the height only until the user adjusts the window.
 // Keep the decision in the main process so already queued resize requests cannot
 // override a drag that has just started.
-function createAutoSizer(window, screen) {
+function createAutoSizer(window, screen, { minimumHeight = 220 } = {}) {
   let automatic = true;
   let applyingSize = false;
   let expected = window.getBounds();
@@ -22,7 +22,8 @@ function createAutoSizer(window, screen) {
     const workArea = screen.getDisplayMatching(bounds).workArea;
     const [, contentHeight] = window.getContentSize();
     const chrome = bounds.height - contentHeight;
-    const desired = Math.max(220, Math.min(Math.ceil(height) + chrome, workArea.height - 32));
+    const maximum = workArea.height - 32;
+    const desired = Math.min(maximum, Math.max(minimumHeight, Math.ceil(height) + chrome));
     const y = Math.max(workArea.y, Math.min(bounds.y, workArea.y + workArea.height - desired));
     if (bounds.height === desired && bounds.y === y) return;
     applyingSize = true;

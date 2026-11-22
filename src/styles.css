@@ -19,7 +19,8 @@ header p { font-size: 11px; color: #a1aba1; margin: 0; }
 .toggle { padding: 3px 4px; border: 0; background: transparent; color: #aab6a5; font-size: 14px; width: 21px; flex-shrink: 0; }
 .project-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding: 4px 0; border: 0; border-radius: 2px; background: transparent; font-size: 14px; font-weight: 600; }
 .project-name:hover { color: #c7e2b4; background: transparent; }
-.session-count { white-space: nowrap; color: #a1aba1; font-size: 11px; }
+.session-count { white-space: nowrap; color: #a1aba1; font-size: 11px; padding: 4px 0; border: 0; background: transparent; }
+.session-count:hover { color: #c7e2b4; background: transparent; text-decoration: underline; }
 .delete { margin-left: auto; padding: 4px 0 4px 8px; border: 0; color: #b4bcb1; font-size: 11px; background: transparent; }
 .delete:hover { color: #ffb8ad; background: transparent; }
 .running-dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: #bdd9a8; }
@@ -36,9 +37,10 @@ header p { font-size: 11px; color: #a1aba1; margin: 0; }
 .dates { color: #a1aba1; font-size: 10px; white-space: nowrap; display: flex; gap: 12px; align-items: center; min-height: 20px; }
 .collapsed { padding-bottom: 12px; }
 .collapsed .project-name { flex: 1; }
-footer { border-top: 1px solid #454d43; padding: 12px 0 14px; display: flex; justify-content: space-between; align-items: center; color: #a1aba1; font-size: 10px; }
+footer { border-top: 1px solid #454d43; padding: 12px 0 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #a1aba1; font-size: 10px; }
+footer #footer-timezone { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+footer #show-data { flex-shrink: 0; }
 footer button { border: 0; background: transparent; color: #b1beaa; font-size: 10px; padding: 3px 0 3px 8px; }
-.local-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #bdd9a8; margin-right: 5px; vertical-align: 1px; }
 #empty { text-align: center; padding: 23px 0 35px; color: #a1aba1; }
 .empty-clock { font-size: 33px; color: #bdd9a8; }
 #empty h2 { color: #e1e5de; font-size: 15px; font-weight: 500; margin: 12px 0 7px; }
@@ -48,9 +50,49 @@ footer button { border: 0; background: transparent; color: #b1beaa; font-size: 1
 dialog { width: 340px; max-width: calc(100vw - 30px); padding: 22px; border: 1px solid #56624f; border-radius: 10px; background: #272d27; color: #e4e8e3; box-shadow: 0 12px 50px #0008; }
 dialog::backdrop { background: #0008; }
 dialog h2 { font-size: 17px; margin: 0 0 21px; }
+#delete-title { margin-bottom: 10px; overflow-wrap: anywhere; }
+#delete-message { color: #b8c2b2; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.danger { background: #d99b90; border-color: #d99b90; color: #321d18; font-weight: 600; }
+.danger:hover { background: #ebb1a7; }
 dialog label { display: block; color: #b8c2b2; font-size: 12px; margin-bottom: 8px; }
-dialog input { display: block; width: 100%; padding: 10px; background: #1c211d; color: #e4e8e3; border: 1px solid #59644f; border-radius: 5px; }
+dialog input, .session-editor input { display: block; width: 100%; min-width: 0; padding: 10px; background: #1c211d; color: #e4e8e3; border: 1px solid #59644f; border-radius: 5px; }
 .dialog-actions { margin-top: 22px; display: flex; justify-content: flex-end; gap: 8px; }
 .form-error { color: #ffd0c6; font-size: 12px; }
+.session-history { margin: 10px 0 0 28px; padding-top: 7px; border-top: 1px solid #3b4438; container-type: inline-size; }
+.session-history h2 { font-size: 12px; margin: 0 0 5px; font-weight: 600; }
+.history-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.history-heading h2 { margin: 0; }
+.add-session { width: 24px; height: 24px; padding: 0; font-size: 18px; line-height: 1; color: #cbe5b9; }
+.session-history .notice { margin-bottom: 6px; padding: 7px; }
+.session-count[aria-expanded="true"] { color: #c7e2b4; }
+.history-hint { color: #a1aba1; font-size: 11px; line-height: 1.5; }
+.history-pages { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 6px; }
+.history-pages button { padding: 1px 8px; }
+.session-list { max-height: 360px; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
+.session-row { padding: 7px 0; border-top: 1px solid #3b4438; }
+.session-row-heading { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+.session-row-heading strong { font-weight: 500; }
+.history-duration { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #cbe5b9; white-space: nowrap; }
+.history-duration::before { content: "("; }
+.history-duration::after { content: ")"; }
+.session-row-heading .edit-session { margin-left: auto; }
+.edit-session, .delete-session { border: 0; background: transparent; padding: 2px 4px; font-size: 10px; color: #b4bcb1; }
+.edit-session:hover { background: transparent; color: #c7e2b4; }
+.delete-session:hover { background: transparent; color: #ffb8ad; }
+.session-range { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 7px; margin-top: 4px; color: #aab5a5; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.session-range span { white-space: nowrap; }
+.session-range-arrow { color: #798674; }
+.session-editor { padding-top: 8px; }
+.session-editor h3 { font-size: 12px; font-weight: 500; margin: 0 0 6px; }
+.session-history > .session-editor { padding: 8px; margin: 4px 0 7px; border: 1px solid #414c3d; border-radius: 6px; background: #252b24; }
+.session-edit-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+.session-edit-fields label { display: block; font-size: 11px; color: #b8c2b2; margin-bottom: 6px; }
+.session-editor input { padding: 6px; font-size: 11px; }
+.session-editor input:focus-visible { outline-offset: 0; }
+.session-editor .history-hint { margin: 6px 0; }
+.session-editor .form-error { margin: 6px 0; }
+.session-editor .dialog-actions { margin-top: 7px; gap: 6px; }
+.session-editor .dialog-actions button { font-size: 11px; }
+@container (min-width: 440px) { .session-edit-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
 [hidden] { display: none !important; }
 @media (max-width: 450px) { #widget { padding-right: 14px; padding-left: 14px; } .project-content { padding-left: 5px; } .digits { font-size: 18px; } .dates { gap: 9px; } }

@@ -54,6 +54,28 @@ function atomicWrite(file, data) {
   }
 }
 
+// Runtime saves use nonblocking file operations. The synchronous writer remains
+// for startup recovery and the standalone installer, before the window is used.
+async function atomicWriteAsync(file, data) {
+  const temp = `${file}.tmp`;
+  let handle;
+  let opened = false;
+  try {
+    handle = await fs.promises.open(temp, 'w', 0o600);
+    opened = true;
+    await handle.writeFile(`${JSON.stringify(data, null, 2)}\n`);
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await fs.promises.rename(temp, file);
+  } finally {
+    if (handle) await handle.close();
+    if (opened) await fs.promises.unlink(temp).catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+  }
+}
+
 class TimerStore {
   constructor(directory, now = () => new Date()) {
     this.directory = directory;
@@ -61,6 +83,7 @@ class TimerStore {
     this.heartbeatFile = path.join(directory, 'heartbeat.json');
     this.now = now;
     this.recovered = 0;
+    this.pending = Promise.resolve();
     fs.mkdirSync(directory, { recursive: true });
     this.data = fs.existsSync(this.file)
       ? upgradeDataFile(this.file)
@@ -84,18 +107,32 @@ class TimerStore {
 
   snapshot() { return structuredClone(this.data); }
 
+  // Every runtime write, including heartbeat and close, shares one queue. A
+  // failed write rejects its caller without poisoning later saves or retries.
+  enqueue(operation) {
+    const task = this.pending.then(operation);
+    this.pending = task.catch(() => {});
+    return task;
+  }
+
+  flush() { return this.pending; }
+
+  hasRunning() { return this.data.projects.some(project => project.blocks.at(-1)?.end === null); }
+
   change(operation) {
-    const next = this.snapshot();
-    operation(next);
-    validate(next);
-    // A folder removed while the app is open must not discard the history still
-    // held in memory. Recreate it before persisting the complete next snapshot.
-    fs.mkdirSync(this.directory, { recursive: true });
-    // Save the heartbeat first so a newly persisted active block has a recovery timestamp.
-    atomicWrite(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
-    atomicWrite(this.file, next);
-    this.data = next;
-    return this.snapshot();
+    return this.enqueue(async () => {
+      const next = this.snapshot();
+      if (operation(next) === false) return this.snapshot();
+      validate(next);
+      // A removed folder must not discard history still held in memory.
+      await fs.promises.mkdir(this.directory, { recursive: true });
+      // Persist recovery before an active block. Publish the in-memory change
+      // only after the complete project file has been safely replaced.
+      await atomicWriteAsync(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
+      await atomicWriteAsync(this.file, next);
+      this.data = next;
+      return this.snapshot();
+    });
   }
 
   create(name) {
@@ -109,7 +146,74 @@ class TimerStore {
     return value.trim();
   }
 
+  editSession(id, index, changes) {
+    return this.change(data => {
+      const project = data.projects.find(item => item.id === id);
+      if (!project) throw new Error('This project no longer exists.');
+      if (project.blocks.some(block => block.end === null)) {
+        throw new Error('Stop this project’s timer before editing any of its sessions.');
+      }
+      if (!Number.isInteger(index) || index < 0 || index >= project.blocks.length) {
+        throw new Error('Choose an existing session to edit.');
+      }
+      if (!changes || !timestamp(changes.start) || !timestamp(changes.end)) {
+        throw new Error('Enter a valid start and end date/time.');
+      }
+      const start = Date.parse(changes.start);
+      const end = Date.parse(changes.end);
+      if (end < start) throw new Error('The end must be at or after the start.');
+      if (index > 0 && start < Date.parse(project.blocks[index - 1].end)) {
+        throw new Error('The start cannot be before the previous session ends.');
+      }
+      if (index + 1 < project.blocks.length && end > Date.parse(project.blocks[index + 1].start)) {
+        throw new Error('The end cannot be after the next session starts.');
+      }
+      project.blocks[index] = {
+        ...project.blocks[index], start: new Date(start).toISOString(), end: new Date(end).toISOString()
+      };
+    });
+  }
+
+  deleteSession(id, index) {
+    return this.change(data => {
+      const project = data.projects.find(item => item.id === id);
+      if (!project) throw new Error('This project no longer exists.');
+      if (project.blocks.some(block => block.end === null)) {
+        throw new Error('Stop this project’s timer before deleting any of its sessions.');
+      }
+      if (!Number.isInteger(index) || index < 0 || index >= project.blocks.length) {
+        throw new Error('Choose an existing session to delete.');
+      }
+      project.blocks.splice(index, 1);
+    });
+  }
+
+  addSession(id, times) {
+    return this.change(data => {
+      const project = data.projects.find(item => item.id === id);
+      if (!project) throw new Error('This project no longer exists.');
+      if (project.blocks.some(block => block.end === null)) {
+        throw new Error('Stop this project’s timer before adding a session.');
+      }
+      if (!times || !timestamp(times.start) || !timestamp(times.end)) {
+        throw new Error('Enter a valid start and end date/time.');
+      }
+      const start = Date.parse(times.start);
+      const end = Date.parse(times.end);
+      if (end <= start) throw new Error('The end must be after the start.');
+      const conflict = project.blocks.findIndex(block => start < Date.parse(block.end) && end > Date.parse(block.start));
+      if (conflict !== -1) {
+        throw new Error(`This overlaps session ${conflict + 1}. Edit the existing session or choose a different time range.`);
+      }
+      const next = project.blocks.findIndex(block => Date.parse(block.start) > start);
+      project.blocks.splice(next === -1 ? project.blocks.length : next, 0, {
+        start: new Date(start).toISOString(), end: new Date(end).toISOString()
+      });
+    });
+  }
+
   update(id, action, value) {
+    const requestedAt = this.now().getTime();
     return this.change(data => {
       const project = data.projects.find(item => item.id === id);
       if (!project) throw new Error('This project no longer exists.');
@@ -122,12 +226,13 @@ class TimerStore {
           break;
         case 'start':
           if (!last || last.end !== null) {
-            const start = Math.max(this.now().getTime(), last ? Date.parse(last.end) : 0);
+            const start = Math.max(requestedAt, last ? Date.parse(last.end) : 0);
             project.blocks.push({ start: new Date(start).toISOString(), end: null });
-          }
+          } else return false;
           break;
         case 'stop':
-          if (last && last.end === null) last.end = new Date(Math.max(this.now().getTime(), Date.parse(last.start))).toISOString();
+          if (last && last.end === null) last.end = new Date(Math.max(requestedAt, Date.parse(last.start))).toISOString();
+          else return false;
           break;
         case 'delete': data.projects = data.projects.filter(item => item.id !== id); break;
         default: throw new Error('Unknown timer action.');
@@ -136,20 +241,28 @@ class TimerStore {
   }
 
   heartbeat() {
-    if (this.data.projects.some(project => project.blocks.at(-1)?.end === null)) {
-      fs.mkdirSync(this.directory, { recursive: true });
-      if (!fs.existsSync(this.file)) atomicWrite(this.file, this.data);
-      atomicWrite(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
-    }
+    return this.enqueue(async () => {
+      if (!this.hasRunning()) return false;
+      await fs.promises.mkdir(this.directory, { recursive: true });
+      try { await fs.promises.access(this.file); }
+      catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        await atomicWriteAsync(this.file, this.data);
+      }
+      await atomicWriteAsync(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
+      return true;
+    });
   }
 
   stopAll() {
-    if (!this.data.projects.some(project => project.blocks.at(-1)?.end === null)) return this.snapshot();
+    const requestedAt = this.now().getTime();
+    // Check inside the queue: a Play request may still be saving when close is
+    // requested. The final stop must include it and wait for earlier saves.
     return this.change(data => {
-      const now = this.now().getTime();
+      if (!data.projects.some(project => project.blocks.at(-1)?.end === null)) return false;
       for (const project of data.projects) {
         const block = project.blocks.at(-1);
-        if (block && block.end === null) block.end = new Date(Math.max(now, Date.parse(block.start))).toISOString();
+        if (block && block.end === null) block.end = new Date(Math.max(requestedAt, Date.parse(block.start))).toISOString();
       }
     });
   }
@@ -168,4 +281,4 @@ function upgradeDataFile(file, { targetVersion = CURRENT_DATA_VERSION, migration
   return migrated;
 }
 
-module.exports = { TimerStore, validate, atomicWrite, upgradeDataFile };
+module.exports = { TimerStore, validate, atomicWrite, atomicWriteAsync, upgradeDataFile };

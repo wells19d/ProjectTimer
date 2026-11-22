@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, screen, Menu } = require('electron');
 const path = require('node:path');
 const { TimerStore } = require('./store');
+const { createHeartbeat, createCloseGuard } = require('./save-lifecycle');
 const { createAutoSizer } = require('./window-sizing');
 const { resolveDataDirectory } = require('./data-directory');
 const { saveScreenshot } = require('./screenshot');
@@ -38,11 +39,15 @@ if (!app.requestSingleInstanceLock()) {
       return;
     }
 
+    app.setAboutPanelOptions({
+      applicationName: 'Project Timer', applicationVersion: app.getVersion(),
+      credits: 'Stores project data locally and works offline.'
+    });
+
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       { label: 'Project Timer', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }] },
       { role: 'editMenu' },
       { role: 'viewMenu' },
-      { role: 'windowMenu' },
       {
         label: 'Support',
         submenu: [
@@ -71,73 +76,90 @@ if (!app.requestSingleInstanceLock()) {
             }
           }
         ]
+      },
+      {
+        role: 'windowMenu',
+        submenu: [
+          {
+            label: 'Always on Top',
+            type: 'checkbox',
+            checked: false,
+            click: item => {
+              if (window && !window.isDestroyed()) window.setAlwaysOnTop(item.checked);
+            }
+          },
+          { type: 'separator' },
+          { role: 'minimize' },
+          { role: 'zoom' },
+          { type: 'separator' },
+          { role: 'front' }
+        ]
       }
     ]));
 
+    const initialHeight = 388;
     window = new BrowserWindow({
-      width: 490, height: 310, minWidth: 430, minHeight: 220,
+      width: 540, height: initialHeight, minWidth: 430, minHeight: 220,
       title: 'Project Timer', backgroundColor: '#202321',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true, nodeIntegration: false, sandbox: true
       }
     });
-    const autoSize = createAutoSizer(window, screen);
+    const autoSize = createAutoSizer(window, screen, { minimumHeight: initialHeight });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.loadFile(path.join(__dirname, 'index.html'));
 
-    function saveBeforeClose(event) {
-      try { store.stopAll(); }
-      catch (error) {
-        event.preventDefault();
-        dialog.showErrorBox('Could not save timers', `${error.message}\n\nThe app will stay open. Fix the disk or folder permissions and try closing again.`);
+    heartbeat = createHeartbeat({
+      store,
+      report: message => {
+        if (!window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('timer:save-status', message);
       }
-    }
-    window.on('close', saveBeforeClose);
-    app.on('before-quit', saveBeforeClose);
+    });
+    const closeGuard = createCloseGuard({
+      save: () => store.stopAll(),
+      pause: () => heartbeat.pause(),
+      resume: () => heartbeat.resume(),
+      finish: () => app.quit(),
+      reportError: error => dialog.showErrorBox('Could not save timers', `${error.message}\n\nThe app will stay open. Fix the disk or folder permissions and try closing again.`)
+    });
+    window.on('close', closeGuard.handle);
+    app.on('before-quit', closeGuard.handle);
     app.on('window-all-closed', () => app.quit());
-    app.on('will-quit', () => clearInterval(heartbeat));
+    app.on('will-quit', () => heartbeat.dispose());
 
-    const handle = (channel, callback) => ipcMain.handle(channel, (event, ...args) => {
-      if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) {
+    const trusted = event => event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame;
+    const handle = (channel, callback) => ipcMain.handle(channel, async (event, ...args) => {
+      if (!trusted(event)) {
         throw new Error('Invalid request source.');
       }
-      try { return { ok: true, value: callback(...args) }; }
+      try {
+        if (closeGuard.isClosing()) throw new Error('The app is closing. Please wait for the final save.');
+        const value = await callback(...args);
+        heartbeat.sync();
+        return { ok: true, value };
+      }
       catch (error) { return { ok: false, error: error.message }; }
     });
 
-    handle('timer:load', () => ({ ...store.snapshot(), recovered: store.recovered, dataFile: store.file }));
+    handle('timer:load', async () => {
+      await store.flush();
+      return { ...store.snapshot(), recovered: store.recovered, dataFile: store.file };
+    });
     handle('timer:create', name => store.create(name));
     handle('timer:update', (id, action, value) => {
       if (action === 'delete') throw new Error('Use the confirmed delete action.');
       return store.update(id, action, value);
     });
-    ipcMain.handle('timer:delete', async (event, id) => {
-      if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) return { ok: false, error: 'Invalid request source.' };
-      try {
-        const project = store.snapshot().projects.find(item => item.id === id);
-        if (!project) throw new Error('This project no longer exists.');
-        const { response } = await dialog.showMessageBox(window, {
-          type: 'warning', title: 'Delete project?',
-          message: `Delete “${project.name}”?`,
-          detail: 'This permanently deletes the project and all of its time blocks.',
-          buttons: ['No', 'Yes, delete'], defaultId: 0, cancelId: 0, noLink: true
-        });
-        return { ok: true, value: response === 1 ? store.update(id, 'delete') : store.snapshot() };
-      } catch (error) { return { ok: false, error: error.message }; }
-    });
+    handle('timer:edit-session', (id, index, changes) => store.editSession(id, index, changes));
+    handle('timer:add-session', (id, times) => store.addSession(id, times));
+    handle('timer:delete-session', (id, index) => store.deleteSession(id, index));
+    handle('timer:delete', id => store.update(id, 'delete'));
     handle('timer:show-data', () => { shell.showItemInFolder(store.file); });
     handle('timer:resize', autoSize);
 
-    heartbeat = setInterval(() => {
-      try {
-        store.heartbeat();
-        window.webContents.send('timer:save-status', null);
-      } catch (error) {
-        window.webContents.send('timer:save-status', `Autosave failed: ${error.message}. Your crash-recovery timestamp is not updating.`);
-      }
-    }, 5000);
+    heartbeat.sync();
   }).catch(error => {
     dialog.showErrorBox('Project Timer could not start', error.message);
     app.quit();
