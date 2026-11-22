@@ -8,17 +8,24 @@ This is my little, simple project timer.
 
 <img src="assets/project-timer.png" width="96" alt="Project Timer clock with play and pause controls">
 
-## What it does
+## About the app
 
-Project Timer is a small, offline desktop app for tracking time spent on projects and labs. Create a project, press Play when you start working, and press Stop when you take a break or finish. It keeps each work session and adds them together so you can see how much time the whole project took. Session and total durations display as `HH:MM:SS`.
+Project Timer is a simple desktop timer for tracking how much time you spend on projects and labs. Start a timer when you work, stop it when you take a break, and see both your latest session and the total time spent on each project.
 
-It is built with JavaScript and Electron and saves everything locally in readable JSON. No account or server is needed.
+Everything is saved locally on your Mac. No account is needed, and the app works offline after installation.
 
-**This project is for macOS only. Mobile, Windows PC, and Linux support are not included and will not be added.**
+**macOS only. Mobile, Windows, and Linux support are not included and will not be added.**
 
-## Open source
+## Features
 
-I'm keeping this project open source. Feel free to fork it and make adjustments to fit your needs. If you share your version, please include a credit and a link to the original Project Timer repository in your README.
+- Track multiple named projects, with separate timers and session histories.
+- See session and project totals in hours, minutes, and seconds (`HH:MM:SS`).
+- View the first start date and most recent stop date for each project.
+- Add forgotten sessions, correct recorded times, or delete sessions you no longer need.
+- Collapse projects to save space; the app remembers which ones you collapsed.
+- Move and resize the window, or keep it above other windows with **Always on Top**.
+- Save screenshots and report problems from the **Support** menu.
+- Save your work automatically and recover recorded time after an unexpected shutdown.
 
 ## Screenshots
 
@@ -28,131 +35,100 @@ I'm keeping this project open source. Feel free to fork it and make adjustments 
 
 **Project timers**
 
-<img src="assets/screenshots/projects.png" width="540" alt="Three project timers showing session counts, start and end dates, session durations, and project totals">
+<img src="assets/screenshots/projects.png" width="540" alt="Three projects showing session counts, dates, session times, and total times">
 
-**Inline session history**
+**Session history**
 
-<img src="assets/screenshots/session-history.png" width="540" alt="Project 1's expanded session history with dates, time ranges, durations, Edit and Delete actions, and a plus button for missing sessions; the other projects are temporarily collapsed">
+<img src="assets/screenshots/session-history.png" width="540" alt="An expanded session history with dates, durations, Edit and Delete buttons, and a plus button for adding a missing session">
 
-## Using the timer
+## Getting started
 
-- **New project** creates a named project with no time recorded.
-- **Play** starts a new time block. **Stop** ends it. Pressing Play again while running does not create another block.
-- **Session** shows the current or most recent time block.
-- **Total** adds all time blocks for that project.
-- **From / Till** show the first start date and most recent stop date.
-- Click a **project name** to rename it.
-- Use the **arrow** to collapse or expand a project. It remembers your choice.
-- **Delete** asks inside the app before removing a project or session. Choose **Cancel** or press **Escape** to keep it.
+You need **macOS 13+**, **Node.js 22.12+**, and **Yarn Classic 1.x** to install or run the app from this repository.
 
-Projects can run independently, including at the same time. Closing the app stops all timers; minimizing it leaves them running. Timers measure elapsed machine time, including time while the Mac sleeps. After a crash, unfinished timers stop at the last saved recovery timestamp. This timestamp is stored separately from your sessions and updates about every five seconds while a timer runs.
+Download or clone [Project Timer](https://github.com/wells19d/ProjectTimer), then open a terminal in the project folder. The initial installation needs internet access; everyday use does not.
 
-Closing waits for pending saves and the final stop timestamps. If the final save fails, the app stays open so you can fix the disk or folder permissions and try closing again.
+### Install as a Mac app
 
-Move and resize the window as needed. Once you resize it manually, it keeps your chosen size for that launch and scrolls if needed.
-
-### Session history
-
-Click a project's **session count** to expand Session History directly beneath it. The other projects temporarily collapse. Click the count again to close the history and restore their saved states.
-
-Each session shows its number, duration, and a short date/time range. Times show hours and minutes; durations retain seconds. Your local timezone is shown once in the footer.
-
-**Stop that project's timer before adding, editing, or deleting sessions.** Other projects can keep running.
-
-- **+** opens a form to add a missing session. Enter its start and end; no session name is needed.
-- **Edit** lets you correct an existing session's start and end. Fields sit side by side when there is room and stack in narrower windows.
-- **Delete** opens an in-app confirmation before removing a session. Cancel or Escape keeps it.
-
-Long histories show 25 sessions at a time. Use the previous/next arrows to browse the remaining sessions.
-
-Sessions stay in chronological order. New sessions cannot overlap any existing block, and edits cannot overlap neighboring sessions. Overlapping entries are rejected; existing times are never adjusted automatically. Sessions can meet exactly at an endpoint. Saved changes immediately update the session count, durations, project total, and From/Till dates.
-
-### Window and support menus
-
-Turn on **Window → Always on Top** to keep the timer above other windows. Uncheck it to return to normal window behavior.
-
-Choose **Support → Save Screenshot…** (or press **⌘⇧S**) to save the currently visible app contents as a PNG wherever you choose.
-
-Choose **Support → Report a Problem…** to open the [GitHub issues page](https://github.com/wells19d/ProjectTimer/issues). Include your app version, what happened, and a screenshot if it helps explain the problem.
-
-**Project Timer → About Project Timer** shows the app version and the local-storage/offline note.
-
-## Performance and saving
-
-- The display checks running timers twice per second and changes the text only when the displayed value changes. Completed totals are cached instead of recalculated on every refresh.
-- Display updates pause when all timers stop or the window is hidden/minimized. Restoring the window immediately catches up to the current time.
-- Project changes rebuild only the affected cards. Unchanged cards stay in place, and cancelling a delete does not redraw them.
-- Long histories render only the current page of up to 25 sessions.
-- Recovery saving continues while a timer runs, including when the window is minimized. It stops polling when all timers stop, and sends save-status messages only when the status changes.
-- Normal disk writes run asynchronously in one queue. Files are written to a temporary file, flushed, and then renamed into place so a partial write does not replace the saved JSON. Closing waits for this queue to finish.
-
-Electron provides the desktop window and has its own memory overhead. These changes reduce repeated work; they do not guarantee a particular CPU or memory usage.
-
-## Setup
-
-You need **macOS 13+**, **Node.js 22.12+**, and **Yarn Classic 1.x**. Clone or download [this repository](https://github.com/wells19d/ProjectTimer) before following either option below.
-
-The first install needs internet access to download dependencies. After that, the app works offline.
-
-### Run from an IDE or terminal
-
-Open the project folder in VS Code, open its integrated terminal, and run:
-
-```sh
-yarn install
-yarn start
-```
-
-After installing dependencies, you can also select **Run and Debug → Project Timer** and press **F5** in VS Code. Other IDEs can run the same terminal commands from the project folder.
-
-This launches the desktop window. Start it with `yarn start`, rather than opening the HTML file in a browser. You can also use a regular terminal without an IDE.
-
-### Install in Applications
-
-If you'd rather launch it like a regular Mac app, open a terminal in the project folder and run:
+Run:
 
 ```sh
 yarn install
 yarn build:mac
 ```
 
-Quit any running copy of the timer before building. This builds and installs **Project Timer.app** in `/Applications`. Open it from Applications, Spotlight, or the Dock. No IDE or terminal window is needed when launching the installed app.
+This installs **Project Timer.app** in your **Applications** folder. Open it from Applications, Spotlight, or the Dock. After installation, you can launch it without opening a terminal or an IDE.
 
-Run `yarn build:mac` again after changing or updating the code to update the installed app. A build copy is also left in `dist/`. If installation fails because Applications is not writable, resolve the folder permissions and rerun the command. For updates, use the command rather than copying a fresh `.app` over the installed one in Finder; manual replacement skips the data-preservation step.
+### Run from VS Code or a terminal
 
-First-time installs start empty. Your development/sample projects are not included. Updates preserve the installed app's existing projects and times. Quit the app before updating; the installer will refuse to replace a running copy.
-
-## Your data
-
-Each copy of the app has its own **`data/projects.json`**. In development it is in the project folder; in the installed app it is inside `Project Timer.app/Contents/Resources/app/data/`. Click **Data file ↗** in the app to find the exact file.
-
-**Quit the app before editing the JSON**, and make a backup first. Each block has a `start` and `end` timestamp, for example:
-
-```json
-{
-  "start": "2026-11-22T09:00:00-06:00",
-  "end": "2026-11-22T10:30:00-06:00"
-}
-```
-
-Keep blocks in time order, with no overlaps within a project. Totals are calculated from these blocks when the app opens. The in-app history editor provides the same corrections without editing the file by hand. Start/end fields use local time; stored timestamps can retain seconds and milliseconds even though the history displays hours and minutes.
-
-Updates carry the installed app's data into the replacement app. The JSON's `version` describes the data format, independently of the app version. If a future release changes that format, its migration converts the existing data and keeps a backup. If conversion is missing or fails, the update stops and leaves the old app and its data in place. App 1.0.1 still uses data format version 1.
-
-## Sharing the source
-
-`data/`, `node_modules/`, and `dist/` are excluded from Git. Include the source, `assets/`, `package.json`, and `yarn.lock` when sharing the project.
-
-Each person should install dependencies and build their own Mac app. The current build uses this Mac's architecture and is signed locally for personal use rather than sharing as a prebuilt installer.
-
-## Development
+Open the project folder in VS Code and use its integrated terminal, or open a regular terminal in that folder:
 
 ```sh
-yarn test       # Run automated tests
-yarn run check  # Check JavaScript syntax
+yarn install
+yarn start
 ```
 
-The app code is in `src/`, build scripts are in `scripts/`, automated tests are in `test/`, and the icon is in `assets/`. Tests cover timer behavior, session validation, display scheduling, queued saves, recovery, shutdown, and installed-data preservation. The build automatically prepares the Mac icon. To build without installing, use `yarn build:mac --package-only`.
+Both options launch the desktop app. The installed copy and the copy you run from the project folder keep separate project data.
+
+### Update the installed app
+
+Quit Project Timer, download or pull the updated source, then run these commands from the project folder:
+
+```sh
+yarn install
+yarn build:mac
+```
+
+Your installed projects and recorded times are preserved. Use this command to update the app; replacing it manually in Finder skips that preservation step. A first-time installation starts with no projects.
+
+## Using the timer
+
+1. Click **+ New project**, enter a name, and choose **Create project**.
+2. Press **Play** when you begin working.
+3. Press **Stop** when you take a break or finish.
+4. Press **Play** again to begin another session on the same project.
+
+**Session** shows the current or most recent session. **Total** adds together every session for that project. Both show hours, minutes, and seconds. **From** is the first start date; **Till** is the most recent stop date.
+
+Click a project name to rename it. Use the arrow beside its name to collapse or expand it. **Delete** asks for confirmation before removing the project and all its sessions; choose **Cancel** or press **Escape** to keep them.
+
+Projects can run at the same time. Minimizing the window leaves timers running, including while your Mac sleeps. Closing the app stops all timers and saves their final times. If a save fails, the app stays open and shows an error.
+
+After a crash or force-quit, unfinished timers are stopped at their last recovery point, normally saved about every five seconds while a timer runs. Time after that recovery point may be lost.
+
+### Review and correct sessions
+
+Click a project's **session count** to open its history beneath the timer. Other projects temporarily collapse; click the count again to close history and restore their previous states.
+
+Each session shows its duration, date, and start/end times. Times use your local timezone, shown at the bottom of the window. Long histories have previous/next arrows to browse 25 sessions at a time.
+
+**Stop that project's timer before making session changes.** Other projects can keep running.
+
+- **+** adds a missing session. Enter its start and end; no name is needed.
+- **Edit** changes an existing session's start and end.
+- **Delete** removes a session after confirmation.
+
+Sessions stay in date order. Added or edited times cannot overlap another session in the same project. If they overlap, choose different times or edit the existing sessions yourself. One session can end at exactly the time another begins.
+
+Saved changes immediately update the project's session count, totals, and dates.
+
+### Window and support options
+
+Move and resize the window to fit your workspace. Content scrolls when needed.
+
+- **Window → Always on Top** keeps the timer above other windows. Uncheck it to turn this off.
+- **Support → Save Screenshot…** saves the visible app contents as a PNG. You can also press **⌘⇧S**.
+- **Support → Report a Problem…** opens the [GitHub issues page](https://github.com/wells19d/ProjectTimer/issues). Include your app version, what happened, and a screenshot if helpful.
+- **Project Timer → About Project Timer** shows your app version.
+
+## Your saved data
+
+Your projects and times are saved automatically on your Mac. Click **Data file ↗** to reveal your `projects.json` file in Finder. You can copy this file somewhere safe as a backup.
+
+Use the session history controls for everyday corrections. If you choose to edit the saved file directly, quit the app first and make a backup before changing anything.
+
+## Open source
+
+I'm keeping this project open source. Feel free to fork it and make adjustments to fit your needs. If you share your version, please include a credit and a link to the original [Project Timer repository](https://github.com/wells19d/ProjectTimer) in your README.
 
 ## Versions
 
@@ -162,8 +138,9 @@ The app code is in `src/`, build scripts are in `scripts/`, automated tests are 
 
 ### 1.0.1
 
-- Inline session history with adding, editing, deleting, chronological ordering, overlap checks, and 25-session pages.
-- In-app delete confirmations, screenshots and issue reporting in Support, and Always on Top in Window.
-- Compact dates and times, local timezone in the footer, and temporary collapse of other projects while viewing history.
-- Updates preserve installed data and check its format version. New installs start empty.
-- Reduced background work, cached totals, targeted project updates, and asynchronous saves that finish before the app closes.
+- View, add, edit, and delete sessions directly beneath each project.
+- Browse long session histories and prevent overlapping times.
+- Confirm deletions inside the app.
+- Save screenshots, report problems, and keep the window above other apps.
+- Clearer dates and times, a more compact layout, and reduced background activity.
+- Preserve existing projects when updating the installed app.
