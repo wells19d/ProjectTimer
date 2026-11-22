@@ -45,11 +45,9 @@ I'm keeping this project open source. Feel free to fork it and make adjustments 
 - Use the **arrow** to collapse or expand a project. It remembers your choice.
 - **Delete** asks inside the app before removing a project or session. Choose **Cancel** or press **Escape** to keep it.
 
-Projects can run independently, including at the same time. Closing the app stops all timers; minimizing it leaves them running. Timers measure elapsed machine time, including time while the Mac sleeps. After a crash, unfinished timers stop at the last saved heartbeat, which updates every five seconds while a timer runs.
+Projects can run independently, including at the same time. Closing the app stops all timers; minimizing it leaves them running. Timers measure elapsed machine time, including time while the Mac sleeps. After a crash, unfinished timers stop at the last saved recovery timestamp. This timestamp is stored separately from your sessions and updates about every five seconds while a timer runs.
 
-The display refreshes twice per second while timers run and the window is visible. Display updates pause when all timers are stopped or the window is hidden/minimized, and refresh immediately when it becomes visible again. Recorded time and the recovery heartbeat continue independently of the display. Heartbeat polling stops when every timer is stopped, and unchanged save-status messages are not sent to the window.
-
-Disk saves run asynchronously, in order, and replace each JSON file atomically. Closing waits for pending saves and the final stop timestamps. If that save fails, the app stays open so you can fix the disk or folder permissions and try closing again.
+Closing waits for pending saves and the final stop timestamps. If the final save fails, the app stays open so you can fix the disk or folder permissions and try closing again.
 
 Move and resize the window as needed. Once you resize it manually, it keeps your chosen size for that launch and scrolls if needed.
 
@@ -78,6 +76,17 @@ Choose **Support → Save Screenshot…** (or press **⌘⇧S**) to save the cur
 Choose **Support → Report a Problem…** to open the [GitHub issues page](https://github.com/wells19d/ProjectTimer/issues). Include your app version, what happened, and a screenshot if it helps explain the problem.
 
 **Project Timer → About Project Timer** shows the app version and the local-storage/offline note.
+
+## Performance and saving
+
+- The display checks running timers twice per second and changes the text only when the displayed value changes. Completed totals are cached instead of recalculated on every refresh.
+- Display updates pause when all timers stop or the window is hidden/minimized. Restoring the window immediately catches up to the current time.
+- Project changes rebuild only the affected cards. Unchanged cards stay in place, and cancelling a delete does not redraw them.
+- Long histories render only the current page of up to 25 sessions.
+- Recovery saving continues while a timer runs, including when the window is minimized. It stops polling when all timers stop, and sends save-status messages only when the status changes.
+- Normal disk writes run asynchronously in one queue. Files are written to a temporary file, flushed, and then renamed into place so a partial write does not replace the saved JSON. Closing waits for this queue to finish.
+
+Electron provides the desktop window and has its own memory overhead. These changes reduce repeated work; they do not guarantee a particular CPU or memory usage.
 
 ## Setup
 
@@ -143,9 +152,18 @@ yarn test       # Run automated tests
 yarn run check  # Check JavaScript syntax
 ```
 
-The app code is in `src/`, build scripts are in `scripts/`, and the icon is in `assets/`. The build automatically prepares the Mac icon. To build without installing, use `yarn build:mac --package-only`.
+The app code is in `src/`, build scripts are in `scripts/`, automated tests are in `test/`, and the icon is in `assets/`. Tests cover timer behavior, session validation, display scheduling, queued saves, recovery, shutdown, and installed-data preservation. The build automatically prepares the Mac icon. To build without installing, use `yarn build:mac --package-only`.
 
 ## Versions
 
-- **1.0.0** — Initial release.
-- **1.0.1** — Inline session history with adding, editing, deleting, chronological ordering, and overlap checks; in-app delete confirmations; screenshots and issue reporting in Support; Always on Top; compact local-time displays and layout improvements; updates that preserve installed data and check its format version.
+### 1.0.0
+
+- Initial release.
+
+### 1.0.1
+
+- Inline session history with adding, editing, deleting, chronological ordering, overlap checks, and 25-session pages.
+- In-app delete confirmations, screenshots and issue reporting in Support, and Always on Top in Window.
+- Compact dates and times, local timezone in the footer, and temporary collapse of other projects while viewing history.
+- Updates preserve installed data and check its format version. New installs start empty.
+- Reduced background work, cached totals, targeted project updates, and asynchronous saves that finish before the app closes.
