@@ -191,3 +191,31 @@ test('invalid actions and names leave data unchanged', t => {
   assert.throws(() => store.update(project(store).id, 'anything'));
   assert.deepEqual(store.snapshot(), before);
 });
+
+test('creating a project restores a removed data directory with all in-memory history', t => {
+  const { store, directory, clock } = fixture(t);
+  store.create('Existing lab');
+  const id = project(store).id;
+  store.update(id, 'start');
+  store.update(id, 'stop');
+  const original = project(store);
+  fs.rmSync(directory, { recursive: true });
+  store.create('New lab');
+  const restored = new TimerStore(directory, clock).snapshot();
+  assert.equal(restored.projects.length, 2);
+  assert.deepEqual(restored.projects[0], original);
+  assert.equal(restored.projects[1].name, 'New lab');
+});
+
+test('autosave restores a removed folder and its project history before saving a recovery timestamp', t => {
+  const { store, directory, clock, advance } = fixture(t);
+  store.create('Existing lab');
+  store.update(project(store).id, 'start');
+  fs.rmSync(directory, { recursive: true });
+  advance(5000);
+  store.heartbeat();
+  const restored = new TimerStore(directory, clock);
+  assert.equal(project(restored).name, 'Existing lab');
+  const block = project(restored).blocks[0];
+  assert.equal(Date.parse(block.end) - Date.parse(block.start), 5000);
+});

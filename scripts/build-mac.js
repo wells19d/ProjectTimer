@@ -1,14 +1,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { installMacApp } = require('./install-mac');
+const { installMacApp, assertAppClosed } = require('./install-mac');
 const { buildIcon } = require('./build-icon');
+const { resolveDataDirectory } = require('../src/data-directory');
 
 // Personal, offline macOS packaging using the runtime already installed by Yarn.
 // Electron's manual packaging format: Contents/Resources/app/package.json.
 function build() {
   if (process.platform !== 'darwin') throw new Error('Run this build on your Mac.');
   const root = path.resolve(__dirname, '..');
+  assertAppClosed(path.join(root, 'dist', 'Project Timer.app'));
+  if (!process.argv.includes('--package-only')) assertAppClosed('/Applications/Project Timer.app');
   const manifest = require(path.join(root, 'package.json'));
   const runtime = path.dirname(require.resolve('electron/package.json'));
   const template = path.join(runtime, 'dist', 'Electron.app');
@@ -38,8 +41,6 @@ function build() {
       name: manifest.name, productName: manifest.productName, version: manifest.version,
       description: manifest.description, main: manifest.main
     }, null, 2) + '\n');
-    const dataDirectory = path.resolve(process.env.PROJECT_TIMER_DATA_DIR || path.join(root, 'data'));
-    fs.writeFileSync(path.join(appDirectory, 'desktop-config.json'), JSON.stringify({ dataDirectory }, null, 2) + '\n');
     fs.rmSync(path.join(resources, 'default_app.asar'), { force: true });
     for (const license of ['LICENSE', 'LICENSES.chromium.html']) {
       fs.copyFileSync(path.join(runtime, 'dist', license), path.join(resources, license));
@@ -74,14 +75,15 @@ function build() {
     // No source, node_modules, or user time data is copied or removed here.
     fs.rmSync(destination, { recursive: true, force: true });
     fs.renameSync(bundle, destination);
-    console.log(`\nBuilt: ${destination}\nData stays in: ${dataDirectory}`);
+    console.log(`\nBuilt: ${destination}\nNew installs start with no projects. Existing installed data is preserved during updates.`);
     if (process.argv.includes('--package-only')) {
       console.log('Installation skipped (--package-only).');
     } else {
       console.log('Installing in Applications…');
       try {
         const installed = installMacApp(destination);
-        console.log(`Ready: ${installed}\nOpen Project Timer from Applications or Spotlight. You can also add it to the Dock.`);
+        const installedData = resolveDataDirectory({ appDirectory: path.join(installed, 'Contents', 'Resources', 'app'), packaged: true });
+        console.log(`Ready: ${installed}\nData location: ${installedData}\nOpen Project Timer from Applications or Spotlight. You can also add it to the Dock.`);
       } catch (error) {
         throw new Error(`The app was built successfully, but installation failed: ${error.message}\nYour built app is still available at ${destination}. If Applications is not writable, move it there in Finder.`);
       }

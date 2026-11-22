@@ -1,14 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { CURRENT_DATA_VERSION, migrateData } = require('./data-version');
 
 function timestamp(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
 }
 
 function validate(data) {
-  if (!data || data.version !== 1 || !Array.isArray(data.projects)) {
-    throw new Error('Expected version: 1 and a projects array.');
+  if (!data || data.version !== CURRENT_DATA_VERSION || !Array.isArray(data.projects)) {
+    throw new Error(`Expected version: ${CURRENT_DATA_VERSION} and a projects array.`);
   }
   const ids = new Set();
   for (const project of data.projects) {
@@ -62,8 +63,8 @@ class TimerStore {
     this.recovered = 0;
     fs.mkdirSync(directory, { recursive: true });
     this.data = fs.existsSync(this.file)
-      ? validate(JSON.parse(fs.readFileSync(this.file, 'utf8')))
-      : { version: 1, projects: [] };
+      ? upgradeDataFile(this.file)
+      : { version: CURRENT_DATA_VERSION, projects: [] };
     let lastSeen = null;
     if (fs.existsSync(this.heartbeatFile)) {
       try {
@@ -87,6 +88,9 @@ class TimerStore {
     const next = this.snapshot();
     operation(next);
     validate(next);
+    // A folder removed while the app is open must not discard the history still
+    // held in memory. Recreate it before persisting the complete next snapshot.
+    fs.mkdirSync(this.directory, { recursive: true });
     // Save the heartbeat first so a newly persisted active block has a recovery timestamp.
     atomicWrite(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
     atomicWrite(this.file, next);
@@ -133,6 +137,8 @@ class TimerStore {
 
   heartbeat() {
     if (this.data.projects.some(project => project.blocks.at(-1)?.end === null)) {
+      fs.mkdirSync(this.directory, { recursive: true });
+      if (!fs.existsSync(this.file)) atomicWrite(this.file, this.data);
       atomicWrite(this.heartbeatFile, { lastSeenAt: this.now().toISOString() });
     }
   }
@@ -149,4 +155,17 @@ class TimerStore {
   }
 }
 
-module.exports = { TimerStore, validate, atomicWrite };
+function upgradeDataFile(file, { targetVersion = CURRENT_DATA_VERSION, migrations, validateData = validate } = {}) {
+  const original = fs.readFileSync(file, 'utf8');
+  const parsed = JSON.parse(original);
+  const migrated = migrateData(parsed, { targetVersion, migrations });
+  validateData(migrated);
+  if (parsed.version !== migrated.version) {
+    const backup = `${file}.v${parsed.version}.${randomUUID()}.backup.json`;
+    fs.writeFileSync(backup, original, { flag: 'wx', mode: 0o600 });
+    atomicWrite(file, migrated);
+  }
+  return migrated;
+}
+
+module.exports = { TimerStore, validate, atomicWrite, upgradeDataFile };

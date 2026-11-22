@@ -3,6 +3,7 @@ const path = require('node:path');
 const { TimerStore } = require('./store');
 const { createAutoSizer } = require('./window-sizing');
 const { resolveDataDirectory } = require('./data-directory');
+const { saveScreenshot } = require('./screenshot');
 
 let window;
 let store;
@@ -41,7 +42,30 @@ if (!app.requestSingleInstanceLock()) {
       { label: 'Project Timer', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }] },
       { role: 'editMenu' },
       { role: 'viewMenu' },
-      { role: 'windowMenu' }
+      {
+        label: 'Window',
+        submenu: [
+          {
+            label: 'Save Screenshot…',
+            accelerator: 'CmdOrCtrl+Shift+S',
+            click: async item => {
+              item.enabled = false;
+              try {
+                await saveScreenshot({ window, dialog, defaultDirectory: app.getPath('desktop') });
+              } catch (error) {
+                dialog.showErrorBox('Could not save screenshot', error.message);
+              } finally {
+                item.enabled = true;
+              }
+            }
+          },
+          { type: 'separator' },
+          { role: 'minimize' },
+          { role: 'zoom' },
+          { type: 'separator' },
+          { role: 'front' }
+        ]
+      }
     ]));
 
     window = new BrowserWindow({
