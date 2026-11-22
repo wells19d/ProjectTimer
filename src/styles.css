@@ -1,0 +1,55 @@
+:root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #e4e8e3; background: #202321; font-size: 13px; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input { font: inherit; }
+button { cursor: pointer; border: 1px solid #414840; border-radius: 6px; background: #2a2f2b; color: #e4e8e3; padding: 7px 11px; transition: background .12s; }
+button:hover { background: #363e36; }
+button:disabled { cursor: default; opacity: .35; }
+button:focus-visible, input:focus-visible { outline: 2px solid #b9d9a5; outline-offset: 3px; }
+#widget { padding: 20px 20px 0; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 19px; }
+h1 { font-size: 19px; letter-spacing: -.6px; margin: 0 0 5px; font-weight: 650; }
+.accent { color: #b8d9a2; }
+header p { font-size: 11px; color: #a1aba1; margin: 0; }
+.create { background: #bdd9a8; border-color: #bdd9a8; color: #20301b; font-weight: 600; white-space: nowrap; }
+.create:hover { background: #d0e8be; }
+.project { border-top: 1px solid #454d43; padding: 13px 0 15px; }
+.project-heading { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.toggle { padding: 3px 4px; border: 0; background: transparent; color: #aab6a5; font-size: 14px; width: 21px; flex-shrink: 0; }
+.project-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding: 4px 0; border: 0; border-radius: 2px; background: transparent; font-size: 14px; font-weight: 600; }
+.project-name:hover { color: #c7e2b4; background: transparent; }
+.session-count { white-space: nowrap; color: #a1aba1; font-size: 11px; }
+.delete { margin-left: auto; padding: 4px 0 4px 8px; border: 0; color: #b4bcb1; font-size: 11px; background: transparent; }
+.delete:hover { color: #ffb8ad; background: transparent; }
+.running-dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: #bdd9a8; }
+.project-content { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 11px; padding: 16px 0 0 28px; }
+.controls { display: flex; gap: 7px; align-items: center; }
+.controls button { min-width: 63px; }
+.play { color: #cbe5b9; }
+.play-symbol { margin-right: 4px; font-size: 10px; }
+.time { display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; white-space: nowrap; }
+.time-label { font-size: 10px; color: #a1aba1; }
+.digits { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 20px; letter-spacing: -.5px; }
+.session-time { color: #cbe5b9; }
+.total-time { font-size: 16px; color: #e1e5de; }
+.dates { color: #a1aba1; font-size: 10px; white-space: nowrap; display: flex; gap: 12px; align-items: center; min-height: 20px; }
+.collapsed { padding-bottom: 12px; }
+.collapsed .project-name { flex: 1; }
+footer { border-top: 1px solid #454d43; padding: 12px 0 14px; display: flex; justify-content: space-between; align-items: center; color: #a1aba1; font-size: 10px; }
+footer button { border: 0; background: transparent; color: #b1beaa; font-size: 10px; padding: 3px 0 3px 8px; }
+.local-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #bdd9a8; margin-right: 5px; vertical-align: 1px; }
+#empty { text-align: center; padding: 23px 0 35px; color: #a1aba1; }
+.empty-clock { font-size: 33px; color: #bdd9a8; }
+#empty h2 { color: #e1e5de; font-size: 15px; font-weight: 500; margin: 12px 0 7px; }
+#empty p { font-size: 12px; margin: 0; }
+.notice { margin: 0 0 14px; padding: 10px; border-radius: 5px; line-height: 1.5; background: #303c2b; font-size: 11px; }
+.error { background: #472e2b; color: #ffd0c6; }
+dialog { width: 340px; max-width: calc(100vw - 30px); padding: 22px; border: 1px solid #56624f; border-radius: 10px; background: #272d27; color: #e4e8e3; box-shadow: 0 12px 50px #0008; }
+dialog::backdrop { background: #0008; }
+dialog h2 { font-size: 17px; margin: 0 0 21px; }
+dialog label { display: block; color: #b8c2b2; font-size: 12px; margin-bottom: 8px; }
+dialog input { display: block; width: 100%; padding: 10px; background: #1c211d; color: #e4e8e3; border: 1px solid #59644f; border-radius: 5px; }
+.dialog-actions { margin-top: 22px; display: flex; justify-content: flex-end; gap: 8px; }
+.form-error { color: #ffd0c6; font-size: 12px; }
+[hidden] { display: none !important; }
+@media (max-width: 450px) { #widget { padding-right: 14px; padding-left: 14px; } .project-content { padding-left: 5px; } .digits { font-size: 18px; } .dates { gap: 9px; } }

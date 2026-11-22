@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Project Timer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="widget">
+    <header>
+      <div><h1>Project Timer<span class="accent">.</span></h1><p id="summary">Your time, project by project.</p></div>
+      <button id="create" class="create" type="button">+ New project</button>
+    </header>
+    <p id="error" class="notice error" role="alert" hidden></p>
+    <p id="save-error" class="notice error" role="alert" hidden></p>
+    <p id="recovery" class="notice" role="status" hidden></p>
+    <section id="projects" aria-label="Projects"></section>
+    <div id="empty" hidden><span class="empty-clock" aria-hidden="true">◷</span><h2>A little time adds up.</h2><p>Create a project or lab, then press Play.</p></div>
+    <footer><span><span class="local-dot" aria-hidden="true"></span> Stored locally · works offline</span><button id="show-data" type="button" title="Reveal projects.json in Finder">Data file ↗</button></footer>
+  </main>
+  <dialog id="name-dialog" aria-labelledby="dialog-title">
+    <form id="name-form">
+      <h2 id="dialog-title">New project</h2>
+      <label for="project-name">Project name</label>
+      <input id="project-name" name="name" maxlength="120" placeholder="e.g. Lab09" autocomplete="off" required>
+      <p id="name-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button id="cancel-name" type="button">Cancel</button><button id="save-name" class="create" type="submit">Create project</button></div>
+    </form>
+  </dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

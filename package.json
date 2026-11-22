@@ -1,0 +1,18 @@
+{
+  "name": "project-timer",
+  "version": "1.0.0",
+  "productName": "Project Timer",
+  "packageManager": "yarn@1.22.22",
+  "private": true,
+  "description": "A small, offline desktop timer for projects and labs.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "node scripts/build-mac.js",
+    "build:icon": "node scripts/build-icon.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/main.js && node --check src/store.js && node --check src/preload.js && node --check src/renderer.js && node --check src/window-sizing.js && node --check src/data-directory.js && node --check scripts/build-mac.js && node --check scripts/install-mac.js && node --check scripts/build-icon.js"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": { "electron": "^45.4.1" }
+}
