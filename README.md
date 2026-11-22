@@ -45,7 +45,9 @@ Projects can run independently. Closing the app stops all timers; minimizing it 
 
 Move and resize the window as needed. Once you resize it manually, it keeps your chosen size for that launch and scrolls if needed.
 
-To share a screenshot or report a problem, choose **Window → Save Screenshot…** (or press **⌘⇧S**). This saves the current visible app contents as a PNG wherever you choose.
+To share a screenshot or report a problem, choose **Support → Save Screenshot…** (or press **⌘⇧S**). This saves the current visible app contents as a PNG wherever you choose.
+
+Choose **Support → Report a Problem…** to open the [GitHub issues page](https://github.com/wells19d/ProjectTimer/issues). Include your app version, what happened, and a screenshot if it helps explain the problem.
 
 ## Setup
 

@@ -42,8 +42,9 @@ if (!app.requestSingleInstanceLock()) {
       { label: 'Project Timer', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }] },
       { role: 'editMenu' },
       { role: 'viewMenu' },
+      { role: 'windowMenu' },
       {
-        label: 'Window',
+        label: 'Support',
         submenu: [
           {
             label: 'Save Screenshot…',
@@ -59,11 +60,16 @@ if (!app.requestSingleInstanceLock()) {
               }
             }
           },
-          { type: 'separator' },
-          { role: 'minimize' },
-          { role: 'zoom' },
-          { type: 'separator' },
-          { role: 'front' }
+          {
+            label: 'Report a Problem…',
+            click: async () => {
+              try {
+                await shell.openExternal('https://github.com/wells19d/ProjectTimer/issues');
+              } catch (error) {
+                dialog.showErrorBox('Could not open GitHub', error.message);
+              }
+            }
+          }
         ]
       }
     ]));
